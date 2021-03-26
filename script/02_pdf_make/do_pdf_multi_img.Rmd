@@ -1,0 +1,71 @@
+---
+header-includes:
+  - \usepackage{xeCJK}
+  - \usepackage{float}
+  - \usepackage{fontspec}
+  - \usepackage{amsmath}
+  - \setCJKmainfont{Noto Serif CJK JP} #choose a font can display Japnese correctly
+
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    df_print: kable
+    pandoc_args: --listings
+    includes:
+      in_header: preamble.tex
+
+fontsize: 11pt
+mainfont: Ubuntu Mono  #choose a font can display Japnese correctly
+---
+
+```{r global_options, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(message=FALSE, 
+tidy.opts=list(width.cutoff=60)) 
+```
+
+```{r library, echo=FALSE, include=FALSE, cache=TRUE}
+library(here)
+library(dplyr)
+library(stringr)
+library(kableExtra)
+library(imager)
+library(purrr)
+```
+
+```{r data, echo=FALSE, cache=TRUE}
+md <- rtweet::read_twitter_csv(here("temp/aibo_waki_20201111.csv"))  #change file path
+```
+
+
+```{r pdf, echo=FALSE}
+pid <- md$img_list[[i]]
+n_pid <- str_split(pid, " ") %>% lengths()
+sid <- md$status_id[i]
+sname <- md$screen_name[i]
+uname <- md$name[i]
+# pic <- paste(here("images/lovot//"),pid,'.jpg', sep='')  #change file path
+id_table <- data.frame(sid, sname, uname)
+colnames(id_table) <- c('Tweet ID', 'User ID', 'User name')
+pid_table <- data.frame(n_pid, pid)
+colnames(pid_table) <- c("Number of images", "Image ID")
+info <- kable(id_table) %>% kable_styling(position = "center")
+img <- kable(pid_table) %>% kable_styling(position = "center")
+```
+
+`r info`
+`r img`
+
+
+```{r tweet, echo=FALSE, results='asis'}
+tweet <- str_replace_all(md$text[i], pattern="<.[^ぁ-んァ-ン一-龯]*>", " ") %>% 
+  str_remove_all(pattern = "\\\\")
+cat(tweet)
+```
+
+
+```{r image, echo=FALSE}
+ims <- str_split(md$img_path[[i]], " ") %>% map(here) %>% unlist()
+imgs <- map(ims, load.image)
+imappend(imgs, "x") %>% plot(axes=F)
+```
+

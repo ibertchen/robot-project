@@ -1,0 +1,300 @@
+---
+title: "Robot Project: Data Description"
+date: "2020-08-26"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=F, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dev = "png")
+```
+
+```{r library, echo=F, message=F}
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(kableExtra)
+library(plotly)
+library(stringr)
+```
+
+
+## To-Do List
+
+* hashtags analysis
+* retweet analysis
+
+
+------
+
+## Data collection
+
+The following keywords were used for searching and collecting tweets that posted in English or Japanese:
+
+**Aibo**: aibo or アイボ
+
+**Lovot**: lovot or ラボット or らぼっと
+
+
+The collected tweets were posted from May 22 to July 31 (77 days in total). <br/>
+
+*ps. time zone of date: UTC*
+<br/>
+
+------
+
+```{r load_data, include=F, message=F, cache=TRUE}
+raw_all <- read.csv("report/raw_all_v2.csv", encoding = 'UTF-8', stringsAsFactors = F) %>% 
+  select(robot, status_id, user_id, is_retweet, created_at, ext_media_url, hashtags, lang)
+
+clean_all <- read.csv("report/clean_all_v2.csv", encoding = 'UTF-8', stringsAsFactors = F) %>% 
+  select(robot, status_id, user_id, is_retweet, created_at, ext_media_url, hashtags, lang)
+
+raw_all$created_at <- as_datetime(raw_all$created_at)
+clean_all$created_at <- as_datetime(clean_all$created_at)
+```
+
+## Frequency Table (Raw Data)
+
+```{r frequency1, echo=F, message=F}
+fre1 <- raw_all %>% 
+  group_by(robot) %>% 
+  summarize('# of tweets'=n_distinct(status_id), '# of users'=n_distinct(user_id)) %>% 
+  ungroup()
+
+kable(fre1, caption="Table 1: # of tweets and users", digits = 1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T)
+
+fre2 <- raw_all %>% 
+  group_by(robot, lang) %>% 
+  summarize("# of tweets"= n()) %>% 
+  mutate("% of tweets" = round(`# of tweets`/sum(`# of tweets`)*100, 1)) %>% 
+  ungroup()
+
+kable(fre2, caption="Table 2: # of tweets posted in English and Japanese", digits=1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4, italic=T)
+
+# fre2 <- raw_all %>% 
+#   filter(is_retweet==TRUE) %>% 
+#   group_by(robot) %>% 
+#   summarize('# of retweets'=n_distinct(status_id)) %>% 
+#   ungroup()
+# 
+# fre3 <- full_join(fre1, fre2) %>% 
+#   mutate('% of retweets'=(`# of retweets`/`# of tweets`*100))
+
+# image1 <- raw_all %>% 
+#   filter(ext_media_url!='NA') %>% 
+#   group_by(robot) %>% 
+#   summarize('n of media' = n()) %>% 
+#   ungroup()
+# 
+# fre4 <- full_join(fre3, image1) %>% 
+#   mutate('% of tweets containing media'=(`n of media`/`# of tweets`*100)) %>% 
+#   select(-`n of media`)
+# 
+# kable(fre4, caption = 'Raw Data', digits = 1) %>% 
+#   kable_styling() %>% 
+#   column_spec(1, bold=T) %>% 
+#   column_spec(5:6, italic = T)
+```
+
+
+------
+
+## Frequency Table (Clean Data)
+
+### Cleaning data
+
+Among the tweets collected with the keywords, there are a few tweets which are not actually related to the robots. Twitter's search API looks for the keywords in both tweets and other properties, and therefore it may return tweets that have no keywords in the text content but in other properties, such as a user name containing *aibo* or *lovot*. In order to analyze the most relevant data, only tweets that contain at least one of the keywords in text content are used in the following analyses. 
+
+
+### Retweet and Language
+
+Tweets of Aibo got more retweeted than tweets of Lovot (73.3% vs. 47.9%). 
+There are more tweets of Aibo were posted in English than tweets of Lovot, but overall Japanese is still the major language used. 
+
+
+```{r frequency2, echo=F, message=F}
+fre3 <- clean_all %>% 
+  group_by(robot) %>% 
+  summarize('# of tweets'=n_distinct(status_id), '# of users'=n_distinct(user_id)) %>% 
+  ungroup()
+
+fre4 <- clean_all %>%
+  filter(is_retweet==TRUE) %>%
+  group_by(robot) %>%
+  summarize('# of retweets'=n_distinct(status_id)) %>%
+  ungroup()
+
+fre5 <- full_join(fre3, fre4) %>%
+  mutate('% of retweets'=(`# of retweets`/`# of tweets`*100)
+         )
+
+kable(fre5, caption = "Table 3: # of tweets, users, and retweets", digits = 1) %>%
+  kable_styling() %>%
+  column_spec(1, bold=T) %>%
+  column_spec(5, italic = T)
+
+fre6 <- clean_all %>% 
+  group_by(robot, lang) %>% 
+  summarize("# of tweets"= n()) %>% 
+  mutate("% of tweets" = round(`# of tweets`/sum(`# of tweets`)*100, 1)) %>% 
+  ungroup()
+
+kable(fre6, caption="Table 4: # of tweets posted in English and Japanese", digits=1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4, italic=T)
+
+
+# fre4 <- full_join(fre3, image1) %>%
+#   mutate('% of tweets containing media'=(`n of media`/`# of tweets`*100)) %>%
+#   select(-`n of media`)
+
+```
+
+<br/>
+
+------
+
+## When the tweets were posted?
+
+The numbers of Aibo tweets significantly increased between July 5 to July 19. Maybe there were specific activities during these two weeks? 
+
+
+*(click plot legend to show all/partial data)*
+
+
+```{r aibo_date, echo=F, message=F, warning=F}
+aibo_set <- clean_all %>% 
+  filter(robot=='aibo') %>% 
+  group_by(date(created_at), is_retweet) %>% 
+  summarize(n=n()) %>% 
+  rename(date_post=`date(created_at)`) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = is_retweet, values_from=n) %>% 
+  rename(not_retweet=`FALSE`, is_retweet=`TRUE`)
+
+plot_ly(aibo_set, x=~date_post, y=~not_retweet, type='bar', name='original tweets') %>% 
+  add_trace(y=~is_retweet, name='retweets') %>% 
+  layout(title='Tweets of Aibo',
+         xaxis=list(title='Date', tickangle=90),
+         yaxis=list(title='# of tweets'), 
+         barmode='stack',
+         legend=list(x=.06, y=.95))
+```
+
+<br/>
+
+```{r lovot_date, echo=F, message=F, warning=F}
+lovot_set <- clean_all %>% 
+  filter(robot=='lovot') %>% 
+  group_by(date(created_at), is_retweet) %>% 
+  summarize(n=n()) %>% 
+  rename(date_post=`date(created_at)`) %>% 
+  ungroup() %>% 
+  pivot_wider(names_from = is_retweet, values_from=n) %>% 
+  rename(not_retweet=`FALSE`, is_retweet=`TRUE`)
+
+plot_ly(lovot_set, x=~date_post, y=~not_retweet, type='bar', name='original tweets') %>% 
+  add_trace(y=~is_retweet, name='retweets') %>% 
+  layout(title='Tweets of Lovot',
+         xaxis=list(title='Date', tickangle=90),
+         yaxis=list(title='# of tweets'), 
+         barmode='stack',
+         legend=list(x=.06, y=.9))
+```
+
+<br/>
+
+------
+
+## Features of tweets
+
+### Images/Photos
+
+Lovot owners are more likely to post tweets with images/photos than Aibo owners. 
+The numbers of tweets containing images slightly decrease when retweets are excluded. 
+
+
+```{r image, message=F}
+image1 <- clean_all %>%
+  filter(ext_media_url!='NA') %>%
+  group_by(robot) %>%
+  summarize('# of tweets with images' = n()) %>%
+  ungroup()
+
+image_t1 <- full_join(fre3, image1) %>% 
+  mutate("% of tweets with images" = `# of tweets with images`/`# of tweets`*100) %>% 
+  select(-`# of users`)
+
+kable(image1_t, caption="Table 5: Images/Photos used in tweets (retweets included)", digits = 1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4, italic=T)
+
+image2 <- clean_all %>%
+  filter(ext_media_url!='NA', is_retweet==F) %>%
+  group_by(robot) %>%
+  summarize('# of tweets with images' = n()) %>%
+  ungroup()
+
+fre7 <- clean_all %>% 
+  filter(is_retweet==F) %>% 
+  group_by(robot) %>% 
+  summarize("# of tweets" = n_distinct(status_id)) %>% 
+  ungroup()
+
+image_t2 <- full_join(fre7, image2) %>% 
+  mutate("% of tweets with images" = `# of tweets with images`/`# of tweets`*100)
+
+kable(image_t2, caption="Table 6: Images/Photos used in tweets (retweets excluded)", digits=1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4, italic=T)
+
+```
+
+<br/>
+
+### Hashtags
+
+```{r hashtag_fre, message=F}
+ht1 <- clean_all %>% 
+  group_by(robot) %>% 
+  summarize("# of tweets" = n())
+
+ht2 <- clean_all %>% 
+  filter(hashtags != "NA") %>%
+  group_by(robot) %>% 
+  summarize("# of tweets having hashtags" = n())
+
+ht3 <- full_join(ht1, ht2) %>% 
+  mutate("% of tweets having hashtags" = (`# of tweets having hashtags`/`# of tweets`*100))
+
+kable(ht3, caption = "Clean Data", digits = 1) %>% 
+  kable_styling() %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4, italic = T)
+
+```
+
+
+
+```{r aibo-hashtag}
+# aibo_hashtag <- clean_all %>% 
+#   filter(robot=="aibo" & is_retweet==FALSE & hashtags!="NA") %>% 
+#   select(status_id, hashtags, created_at)
+# 
+# aibo_hashtag$hashtags <- str_to_lower(aibo_hashtag$hashtags) # to lowercase lettwes
+# 
+# aibo_hashtag
+# 
+```
+

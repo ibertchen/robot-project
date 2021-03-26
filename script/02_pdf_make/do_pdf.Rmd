@@ -1,0 +1,59 @@
+---
+header-includes:
+  - \usepackage{xeCJK}
+  - \usepackage{float}
+  - \usepackage{fontspec}
+  - \setCJKmainfont{TakaoGothic} #choose a font can display Japnese correctly
+
+output: 
+  pdf_document:
+    latex_engine: xelatex
+    df_print: kable
+    pandoc_args: --listings
+    includes:
+      in_header: preamble.tex
+
+fontsize: 11pt
+mainfont: Ubuntu Mono  #choose a font can display Japnese correctly
+---
+
+```{r global_options, include=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(message=FALSE, 
+tidy.opts=list(width.cutoff=60)) 
+```
+
+```{r library, echo=FALSE, include=FALSE}
+library(here)
+library(dplyr)
+library(stringr)
+library(kableExtra)
+```
+
+```{r data, echo=FALSE, cache=TRUE}
+md <- readr::read_csv(here("img_url_list/lovot_img_20201103.csv"))  #change file path
+```
+
+
+```{r pdf, echo=FALSE}
+pid <- md$img_id[i]
+sid <- as.character(md$status_id[i])
+sname <- md$screen_name[i]
+uname <- md$name[i]
+pic <- paste(here("images/lovot//"),pid,'.jpg', sep='')  #change file path
+id_table <- data.frame(pid, sid, sname, uname)
+colnames(id_table) <- c('Pic ID', 'Tweet ID', 'User ID', 'User name')
+info <- kable(id_table) %>% kable_styling()
+```
+
+`r info`
+
+
+```{r tweet, echo=FALSE, results='asis'}
+tweet <- str_replace_all(md$text[i], pattern="<.[^ぁ-んァ-ン一-龯]*>", " ")
+cat(tweet)
+```
+
+
+---
+
+![](`r pic`){height=60%}

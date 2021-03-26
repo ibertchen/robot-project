@@ -1,0 +1,136 @@
+---
+title: "Robot - Data Description - v2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.width = 7)
+```
+
+
+```{r library, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(kableExtra)
+library(see)
+```
+
+
+```{r data, include=FALSE, cache=TRUE}
+md <- rtweet::read_twitter_csv(here::here("data/clean_data/202005-08/all_clean_20201104_v2.csv"))
+```
+
+
+### Frequency
+
+```{r frequency}
+# number of tweets (and the proportion of retweet)
+aibo <- md %>% 
+  filter(is_aibo == TRUE) %>% 
+  group_by(is_retweet) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  mutate(p = round(n/sum(n)*100, 1)) %>% 
+  rename("Count (aibo)" = n, "% (aibo)" = p)
+
+lovot <- md %>% 
+  filter(is_lovot == TRUE) %>% 
+  group_by(is_retweet) %>% 
+  summarise(n = n()) %>% 
+  ungroup() %>% 
+  mutate(p = round(n/sum(n)*100, 1)) %>% 
+  rename("Count (lovot)" = n, "% (lovot)" = p)
+
+full_join(aibo, lovot) %>% 
+  mutate(is_retweet = ifelse(is_retweet == TRUE, "Retweet", "Tweet")) %>% 
+  rename("Tweet Type" = is_retweet) %>% 
+  janitor::adorn_totals() %>% 
+  kbl() %>% 
+  kable_styling(full_width = F, bootstrap_options = "striped", position = "left") %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4:5, background = "#ffffe6") %>% 
+  row_spec(3, bold=T)
+```
+
+
+---
+
+### Hashtag Usage
+
+```{r hashtag1}
+# tweet having hashtags
+aibo <- md %>% 
+  filter(is_aibo == TRUE & is_retweet == FALSE) %>% 
+  mutate(has_tags = if_else(hashtags != "NA", "Yes", "No", "No")) %>% 
+  group_by(has_tags) %>% 
+  summarize(n = n()) %>% 
+  mutate(p = round(n/sum(n)*100, 1)) %>% 
+  ungroup() %>% 
+  rename(`Count (aibo)`=n, `% (aibo)`=p)
+
+lovot <- md %>% 
+  filter(is_lovot == TRUE & is_retweet == FALSE) %>% 
+  mutate(has_tags = if_else(hashtags != "NA", "Yes", "No", "No")) %>% 
+  group_by(has_tags) %>% 
+  summarize(n = n()) %>% 
+  mutate(p = round(n/sum(n)*100, 1)) %>% 
+  ungroup() %>% 
+  rename(`Count (lovot)`=n, `% (lovot)`=p)
+
+full_join(aibo, lovot, by = "has_tags") %>% 
+  janitor::adorn_totals() %>% 
+  rename("Has Hashtag" = has_tags) %>% 
+  kbl() %>% 
+  kable_styling(full_width = F, position = "left",
+                bootstrap_options = "striped") %>% 
+  column_spec(1, bold=T) %>% 
+  column_spec(4:5, background = "#ffffe6") %>% 
+  row_spec(3, bold=T) %>% 
+  footnote(general = "Not including retweets",
+           footnote_as_chunk = T)
+```
+
+
+
+
+#### Popular hashtag
+
+```{r hashtag2}
+# hashtags
+aibo_hash <- md %>% 
+  filter(is_aibo == TRUE & is_retweet == FALSE) %>% 
+  filter(hashtags != "NA") %>% 
+  mutate(hashtags = strsplit(unlist(hashtags), " ")) %>% 
+  tidyr::unnest(hashtags) %>% 
+  group_by(tolower(hashtags)) %>% 
+  summarise(Count = n()) %>% 
+  arrange(desc(Count)) %>% 
+  ungroup() %>% 
+  rename("Hashtag" = `tolower(hashtags)`)
+
+ggplot(aibo_hash[1:20,], aes(x=reorder(Hashtag, Count), y=Count)) +
+  geom_col(fill="grey") +
+  coord_flip() +
+  labs(x="Top 20 Hashtags", title = "Aibo (without retweets)") +
+  theme_lucid()
+
+
+lovot_hash <- md %>% 
+  filter(is_lovot == TRUE & is_retweet == FALSE) %>% 
+  filter(hashtags != "NA") %>% 
+  mutate(hashtags = strsplit(unlist(hashtags), " ")) %>% 
+  tidyr::unnest(hashtags) %>% 
+  group_by(tolower(hashtags)) %>% 
+  summarise(Count = n()) %>% 
+  arrange(desc(Count)) %>% 
+  ungroup() %>% 
+  rename("Hashtag" = `tolower(hashtags)`)
+
+ggplot(lovot_hash[1:20,], aes(x=reorder(Hashtag, Count), y=Count)) +
+  geom_col(fill="grey") +
+  coord_flip() +
+  labs(x="Top 20 Hashtags", title = "Lovot (without retweets)") +
+  theme_lucid()
+
+```
