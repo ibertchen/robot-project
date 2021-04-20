@@ -7,7 +7,7 @@ here::i_am("script/all_in_one.R")
 
 ## ---- Collect Data ---- ##
 # prefix-
-newfile <- "20210321-24"
+newfile <- "20210413-16"
 
 ## search and retrieve tweets
 # remember to modify date (since & until)
@@ -15,7 +15,7 @@ library(rtweet)
 robot_tweets <- search_tweets(q= "aibo OR lovot OR アイボ OR ラボット OR あいぼ OR らぼっと",
                               n=100000, retryonratelimit = TRUE,
                               tweet_mode = "extended", lang = "ja",
-                              since = "2021-03-21", until = "2021-03-25")
+                              since = "2021-04-13", until = "2021-04-17")
 
 ## sort data by time
 library(dplyr)

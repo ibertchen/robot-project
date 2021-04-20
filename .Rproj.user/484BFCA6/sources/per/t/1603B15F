@@ -3,7 +3,7 @@
     "path": "~/Documents/robot/script/all_in_one.R",
     "project_path": "script/all_in_one.R",
     "type": "r_source",
-    "hash": "2214371140",
+    "hash": "1164451412",
     "contents": "",
     "dirty": false,
     "created": 1612415848795.0,
@@ -12,15 +12,15 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "116,1",
+        "cursorPosition": "111,20",
         "scrollLine": "76"
     },
     "folds": "",
-    "lastKnownWriteTime": 1616732027,
+    "lastKnownWriteTime": 1618770553,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1616732027255,
+    "last_content_update": 1618770553772,
     "read_only": false,
     "read_only_alternatives": []
 }
